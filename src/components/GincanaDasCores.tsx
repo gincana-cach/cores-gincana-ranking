@@ -56,10 +56,12 @@ export const GincanaDasCores = () => {
   const [activeRankingId, setActiveRankingId] = useState<string | null>(null);
   const [currentData, setCurrentData] = useState<TeamData[]>([]);
   const [previousData, setPreviousData] = useState<TeamData[]>([]);
-  const [status, setStatus] = useState('Selecione um ranking para começar.');
+  const [status, setStatus] = useState('Carregando dados...');
   const [isLoading, setIsLoading] = useState(false);
   const [lastDataCache, setLastDataCache] = useState<Record<string, TeamData[]>>({});
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
 
+  // Função para verificar se dois arrays de dados são iguais
   const areDataEqual = (data1: TeamData[], data2: TeamData[]): boolean => {
     if (!data1 || !data2 || data1.length !== data2.length) return false;
     const data1Str = JSON.stringify(data1.map(d => `${d.nome}:${d.totalPontos}`).sort());
@@ -67,51 +69,78 @@ export const GincanaDasCores = () => {
     return data1Str === data2Str;
   };
 
+  // Função principal para carregar dados do ranking
   const loadRanking = async (rankingId: string, isAutoUpdate = false) => {
+    console.log(`Loading ranking ${rankingId}, isAutoUpdate: ${isAutoUpdate}`);
+    
     const rankingInfo = rankings.find(r => r.id === rankingId);
-    if (!rankingInfo) return;
+    if (!rankingInfo) {
+      console.error(`Ranking ${rankingId} not found`);
+      return;
+    }
 
     const cachedData = lastDataCache[rankingId];
     
     if (!isAutoUpdate) {
       setActiveRankingId(rankingId);
-      if (cachedData) {
+      if (cachedData && cachedData.length > 0) {
         setPreviousData(currentData);
         setCurrentData(cachedData);
         setStatus('Buscando atualizações...');
       } else {
         setCurrentData([]);
-        setStatus('Buscando dados...');
+        setStatus('Carregando dados...');
       }
       setIsLoading(true);
     }
 
     try {
-      const cacheBuster = `&t=${new Date().getTime()}`;
-      const response = await fetch(rankingInfo.url + cacheBuster);
+      // Adiciona cache buster para forçar atualização
+      const timestamp = new Date().getTime();
+      const urlWithCacheBuster = `${rankingInfo.url}&cb=${timestamp}`;
+      
+      console.log(`Fetching data from: ${urlWithCacheBuster}`);
+      
+      const response = await fetch(urlWithCacheBuster, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       
       if (!response.ok) {
-        throw new Error(`Network response was not ok: ${response.statusText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const csvData = await response.text();
+      console.log(`CSV data received, length: ${csvData.length}`);
+      
       const lines = csvData.trim().split('\n');
       
       if (lines.length <= 1) {
-        if (!cachedData) {
-          setStatus("Aguardando primeiros lançamentos.");
+        console.log('No data found in CSV');
+        if (!cachedData || cachedData.length === 0) {
+          setStatus("Aguardando primeiros dados...");
+          setCurrentData([]);
+        } else {
+          setStatus('');
         }
+        setIsLoading(false);
         return;
       }
       
-      lines.shift(); // Remove header
+      // Remove header
+      lines.shift();
       
       const teamScores: Record<string, number> = {};
-      lines.forEach(line => {
+      lines.forEach((line, index) => {
         const columns = line.split(',');
         if (columns.length >= 2) {
           const team = columns[0].trim().replace(/"/g, '');
-          const score = parseFloat(columns[1].trim().replace(/"/g, ''));
+          const scoreStr = columns[1].trim().replace(/"/g, '');
+          const score = parseFloat(scoreStr);
+          
           if (team && !isNaN(score)) {
             teamScores[team] = (teamScores[team] || 0) + score;
           }
@@ -122,46 +151,72 @@ export const GincanaDasCores = () => {
         .map(team => ({ nome: team, totalPontos: teamScores[team] }))
         .sort((a, b) => b.totalPontos - a.totalPontos);
       
+      console.log(`Processed ${newRanking.length} teams`);
+      
+      // Verifica se os dados mudaram
       if (areDataEqual(newRanking, cachedData)) {
+        console.log('Data unchanged');
         setStatus('');
         setIsLoading(false);
         return;
       }
       
+      console.log('Data changed, updating state');
+      
+      // Atualiza o cache e estado
       setLastDataCache(prev => ({ ...prev, [rankingId]: newRanking }));
-      setPreviousData(currentData);
+      setPreviousData(currentData.length > 0 ? currentData : cachedData || []);
       setCurrentData(newRanking);
       setStatus('');
       setIsLoading(false);
+      setLastUpdateTime(new Date());
       
     } catch (error) {
-      console.error('Erro ao carregar ranking:', error);
-      if (!cachedData) {
-        setStatus('Falha ao buscar dados. Verifique a conexão.');
+      console.error('Error loading ranking:', error);
+      
+      if (!cachedData || cachedData.length === 0) {
+        setStatus('Erro ao carregar dados. Tentando novamente...');
+        setCurrentData([]);
       } else {
-        setStatus('Falha na atualização. Exibindo últimos dados válidos.');
+        setStatus('Erro na atualização. Exibindo dados em cache.');
       }
       setIsLoading(false);
     }
   };
 
-  // Auto-update every 10 seconds
+  // Auto-update a cada 15 segundos
   useEffect(() => {
     if (!activeRankingId) return;
     
-    const interval = setInterval(() => {
-      loadRanking(activeRankingId, true);
-    }, 10000);
+    console.log(`Setting up auto-update for ${activeRankingId}`);
     
-    return () => clearInterval(interval);
-  }, [activeRankingId]);
+    const interval = setInterval(() => {
+      console.log('Auto-update triggered');
+      loadRanking(activeRankingId, true);
+    }, 15000); // 15 segundos
+    
+    return () => {
+      console.log('Clearing auto-update interval');
+      clearInterval(interval);
+    };
+  }, [activeRankingId, currentData]);
 
-  // Initialize with first ranking
+  // Carrega o primeiro ranking ao inicializar
   useEffect(() => {
+    console.log('Component mounted, loading first ranking');
     if (rankings.length > 0) {
       loadRanking(rankings[0].id);
     }
   }, []);
+
+  // Atualiza status com horário da última atualização
+  const getStatusText = () => {
+    if (status) return status;
+    if (lastUpdateTime) {
+      return `Última atualização: ${lastUpdateTime.toLocaleTimeString()}`;
+    }
+    return '';
+  };
 
   return (
     <div className="min-h-screen bg-gradient-rainbow bg-400 animate-gradient overflow-x-hidden">
@@ -194,7 +249,7 @@ export const GincanaDasCores = () => {
 
           {/* Status */}
           <div className="text-center text-white/80 font-medium italic text-sm md:text-lg min-h-[25px] mb-6 transition-opacity duration-500">
-            {status}
+            {getStatusText()}
           </div>
 
           {/* Ranking Table */}
