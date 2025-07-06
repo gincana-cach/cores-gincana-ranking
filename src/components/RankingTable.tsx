@@ -122,9 +122,6 @@ export const RankingTable: React.FC<RankingTableProps> = ({
               <th className="px-3 py-4 md:px-6 md:py-5 font-semibold text-white text-sm md:text-lg">
                 Turma
               </th>
-              <th className="px-3 py-4 md:px-6 md:py-5 font-semibold text-white text-sm md:text-lg text-right">
-                Pontuação
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -154,12 +151,9 @@ export const RankingTable: React.FC<RankingTableProps> = ({
                     </div>
                   </td>
                   <td className={`px-3 py-4 md:px-6 md:py-5 font-bold ${teamColorClass} text-sm md:text-lg`}>
-                    <div className="truncate max-w-[120px] md:max-w-none">
+                    <div className="truncate max-w-[200px] md:max-w-none">
                       {team.nome}
                     </div>
-                  </td>
-                  <td className={`px-3 py-4 md:px-6 md:py-5 font-bold ${teamColorClass} text-sm md:text-lg text-right`}>
-                    {team.totalPontos}
                   </td>
                 </tr>
               );
