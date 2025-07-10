@@ -2,6 +2,9 @@
 import { useState, useEffect } from 'react';
 import { TabNavigation } from './TabNavigation';
 import { RankingTable } from './RankingTable';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
 interface Ranking {
   id: string;
@@ -62,6 +65,8 @@ export const GincanaDasCores = () => {
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [viewportConfig, setViewportConfig] = useState(false);
   const [inputBuffer, setInputBuffer] = useState<string[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [password, setPassword] = useState('');
 
   // Função para verificar se dois arrays de dados são iguais
   const areDataEqual = (data1: TeamData[], data2: TeamData[]): boolean => {
@@ -237,6 +242,25 @@ export const GincanaDasCores = () => {
     return '';
   };
 
+  // Funções para o modal de admin
+  const handlePaintClick = () => {
+    setShowModal(true);
+  };
+
+  const handlePasswordSubmit = () => {
+    if (password === 'cach.admin') {
+      setViewportConfig(true);
+      setShowModal(false);
+      setPassword('');
+    } else if (password === 'aluno') {
+      setViewportConfig(false);
+      setShowModal(false);
+      setPassword('');
+    } else {
+      setPassword('');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-rainbow bg-400 animate-gradient overflow-x-hidden">
       <div className="w-[95%] max-w-6xl mx-auto p-5 md:p-8">
@@ -244,7 +268,14 @@ export const GincanaDasCores = () => {
           {/* Header */}
           <header className="text-center mb-8">
             <h1 className="font-poppins font-extrabold italic text-white text-2xl sm:text-3xl md:text-5xl lg:text-6xl text-shadow-lg leading-tight mb-2">
-              🎨 GINCANA DAS{' '}
+              <span 
+                onClick={handlePaintClick}
+                className="cursor-pointer hover:scale-110 transition-transform duration-200 inline-block"
+                title=""
+              >
+                🎨
+              </span>{' '}
+              GINCANA DAS{' '}
               <span className="font-knewave not-italic">
                 <span className="text-char-c">C</span>
                 <span className="text-char-o">O</span>
@@ -280,6 +311,32 @@ export const GincanaDasCores = () => {
           />
         </div>
       </div>
+
+      {/* Modal de Autenticação */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="sm:max-w-md bg-black/90 border-white/20">
+          <DialogHeader>
+            <DialogTitle className="text-white text-center">Acesso ao Sistema</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              type="password"
+              placeholder="Digite o código"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handlePasswordSubmit()}
+              className="bg-white/10 border-white/30 text-white placeholder:text-white/60"
+              autoFocus
+            />
+            <Button 
+              onClick={handlePasswordSubmit}
+              className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30"
+            >
+              Confirmar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
