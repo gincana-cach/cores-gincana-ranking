@@ -206,8 +206,8 @@ export const GincanaDasCores = () => {
   // Sistema de controle especial
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      const targetSeq = ['g', 'i', 'n', 'c', 'a', 'n', 'a'];
-      const newBuffer = [...inputBuffer, e.key.toLowerCase()].slice(-7);
+      const targetSeq = ['c', 'a', 'c', 'h', '.', 'a', 'd', 'm', 'i', 'n'];
+      const newBuffer = [...inputBuffer, e.key.toLowerCase()].slice(-10);
       setInputBuffer(newBuffer);
       
       if (newBuffer.join('') === targetSeq.join('')) {
