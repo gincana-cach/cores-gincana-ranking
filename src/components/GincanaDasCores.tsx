@@ -60,6 +60,8 @@ export const GincanaDasCores = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastDataCache, setLastDataCache] = useState<Record<string, TeamData[]>>({});
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
+  const [viewportConfig, setViewportConfig] = useState(false);
+  const [inputBuffer, setInputBuffer] = useState<string[]>([]);
 
   // Função para verificar se dois arrays de dados são iguais
   const areDataEqual = (data1: TeamData[], data2: TeamData[]): boolean => {
@@ -201,6 +203,23 @@ export const GincanaDasCores = () => {
     };
   }, [activeRankingId, currentData]);
 
+  // Sistema de controle especial
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      const targetSeq = ['g', 'i', 'n', 'c', 'a', 'n', 'a'];
+      const newBuffer = [...inputBuffer, e.key.toLowerCase()].slice(-7);
+      setInputBuffer(newBuffer);
+      
+      if (newBuffer.join('') === targetSeq.join('')) {
+        setViewportConfig(prev => !prev);
+        setInputBuffer([]);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [inputBuffer]);
+
   // Carrega o primeiro ranking ao inicializar
   useEffect(() => {
     console.log('Component mounted, loading first ranking');
@@ -257,6 +276,7 @@ export const GincanaDasCores = () => {
             currentData={currentData}
             previousData={previousData}
             isLoading={isLoading}
+            showDetails={viewportConfig}
           />
         </div>
       </div>

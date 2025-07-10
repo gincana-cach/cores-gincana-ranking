@@ -11,12 +11,14 @@ interface RankingTableProps {
   currentData: TeamData[];
   previousData: TeamData[];
   isLoading: boolean;
+  showDetails?: boolean;
 }
 
 export const RankingTable: React.FC<RankingTableProps> = ({
   currentData,
   previousData,
-  isLoading
+  isLoading,
+  showDetails = false
 }) => {
   const [animatedRows, setAnimatedRows] = useState<Set<string>>(new Set());
 
@@ -122,6 +124,11 @@ export const RankingTable: React.FC<RankingTableProps> = ({
               <th className="px-3 py-4 md:px-6 md:py-5 font-semibold text-white text-sm md:text-lg">
                 Turma
               </th>
+              {showDetails && (
+                <th className="px-3 py-4 md:px-6 md:py-5 font-semibold text-white text-sm md:text-lg text-right">
+                  Pontuação
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -155,6 +162,11 @@ export const RankingTable: React.FC<RankingTableProps> = ({
                       {team.nome}
                     </div>
                   </td>
+                  {showDetails && (
+                    <td className={`px-3 py-4 md:px-6 md:py-5 font-bold ${teamColorClass} text-sm md:text-lg text-right`}>
+                      {team.totalPontos}
+                    </td>
+                  )}
                 </tr>
               );
             })}
